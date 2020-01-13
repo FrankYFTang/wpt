@@ -38,3 +38,23 @@ function run_coop_tests(documentCOOPValueTitle, testArray) {
     }, `${documentCOOPValueTitle} document opening popup to ${test[0].origin} with COOP: "${test[1]}"`);
   }
 }
+
+function run_coop_test_iframe (iframe_origin, popup_origin, popup_coop, expects_opener, expects_name) {
+  const name = iframe_origin.name + "_iframe_opening_" + popup_origin.name + "_popup_with_coop_" + popup_coop;
+  async_test(t => {
+      const frame = document.createElement("iframe");
+      t.add_cleanup(() => { frame.remove(); });
+
+      const origin = CROSS_ORIGIN.origin;
+      const path = new URL("resources/iframe-popup.sub.html", window.location).pathname;
+      const bc = new BroadcastChannel(name);
+      frame.src = `${iframe_origin.origin}${path}?popup_origin=${popup_origin.origin}&popup_coop=${popup_coop}&channel=${name}`;
+
+      bc.onmessage = t.step_func_done(event => {
+              const payload = event.data;
+              assert_equals(payload.opener, expects_opener);
+              assert_equals(payload.name, expects_name? name:"");
+      });
+      document.body.append(frame);
+  }, name);
+}
